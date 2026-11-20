@@ -1,0 +1,107 @@
+# Pipeline de Build (CI) - Meu Bairro
+# Dispara apenas apos merge na main (via PR). Nao roda em PRs nem em outras branches.
+trigger:
+  branches:
+    include:
+      - main
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+# Variaveis de ambiente da pipeline (requisito 15).
+variables:
+  buildConfiguration: Release
+  dotnetSdkVersion: 10.0.x
+  solutionDir: Meu-bairro-.NET-main
+  apiProject: Meu-bairro-.NET-main/src/MeuBairro.Api/MeuBairro.Api.csproj
+  testProjects: Meu-bairro-.NET-main/**/*Tests*.csproj
+  publishDir: $(Build.ArtifactStagingDirectory)/publish
+
+stages:
+  - stage: Build
+    displayName: Build e testes (CI)
+    jobs:
+      - job: BuildTest
+        displayName: Restore, Build, Test e Publish
+        steps:
+          - task: UseDotNet@2
+            displayName: Instalar .NET SDK $(dotnetSdkVersion)
+            inputs:
+              packageType: sdk
+              version: $(dotnetSdkVersion)
+
+          - task: DotNetCoreCLI@2
+            displayName: Restore
+            inputs:
+              command: restore
+              projects: $(apiProject)
+
+          - task: DotNetCoreCLI@2
+            displayName: Build
+            inputs:
+              command: build
+              projects: $(apiProject)
+              arguments: --configuration $(buildConfiguration) --no-restore
+
+          # Testes automaticos (xUnit). Resultados aparecem na aba Tests da pipeline.
+          - task: DotNetCoreCLI@2
+            displayName: Testes xUnit
+            inputs:
+              command: test
+              projects: $(testProjects)
+              arguments: --configuration $(buildConfiguration) --logger trx --results-directory $(Agent.TempDirectory)/TestResults
+              publishTestResults: false
+
+          - task: PublishTestResults@2
+            displayName: Publicar resultados dos testes
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: '**/*.trx'
+              searchFolder: $(Agent.TempDirectory)/TestResults
+              testRunTitle: Testes xUnit - Meu Bairro
+
+          - task: DotNetCoreCLI@2
+            displayName: Publish da API
+            inputs:
+              command: publish
+              projects: $(apiProject)
+              publishWebProjects: false
+              zipAfterPublish: false
+              arguments: --configuration $(buildConfiguration) --output $(publishDir)/app
+
+          # O Web App inicia com "sh startup.sh" (definido no infra.sh).
+          - script: |
+              printf '#!/bin/sh\nexec dotnet ./MeuBairro.Api.dll\n' > "$(publishDir)/app/startup.sh"
+            displayName: Gerar startup.sh
+
+          - task: ArchiveFiles@2
+            displayName: Compactar pacote
+            inputs:
+              rootFolderOrFile: $(publishDir)/app
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/drop/meubairro-api.zip
+
+          - task: CopyFiles@2
+            displayName: Copiar resultados dos testes
+            condition: succeededOrFailed()
+            inputs:
+              SourceFolder: $(Agent.TempDirectory)/TestResults
+              Contents: '**/*.trx'
+              TargetFolder: $(Build.ArtifactStagingDirectory)/testes
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publicar artefato - pacote (drop)
+            inputs:
+              PathtoPublish: $(Build.ArtifactStagingDirectory)/drop
+              ArtifactName: drop
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publicar artefato - testes
+            condition: succeededOrFailed()
+            inputs:
+              PathtoPublish: $(Build.ArtifactStagingDirectory)/testes
+              ArtifactName: testes
