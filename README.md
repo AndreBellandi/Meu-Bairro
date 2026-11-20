@@ -17,7 +17,7 @@ O **Meu Bairro** é uma API REST em **.NET 10** com autenticação **JWT** e doc
 
 ## 2. Arquitetura
 
-![Arquitetura macro](docs/arquitetura.png)
+![Arquitetura macro](arquitetura.png)
 
 | # | Fluxo |
 |---|-------|
@@ -100,4 +100,15 @@ bash scripts/infra.sh <RM>
 
 ## 9. Tabelas do banco
 
-<!-- preencher com as tabelas do script-bd.sql -->
+Modelo relacional Oracle de zeladoria colaborativa: o cidadão registra um problema do bairro (solicitação), a equipe municipal acompanha o andamento e o cidadão avalia o atendimento. O DDL completo está em `scripts/script-bd.sql`.
+
+| Tabela | Descrição | Relacionamentos |
+|--------|-----------|-----------------|
+| `enderecos` | Endereços (logradouro, bairro, cidade, estado, CEP e coordenadas) | Usada por `usuarios` e `solicitacoes` |
+| `usuarios` | Cidadãos que usam o app (nome, e-mail único, senha, telefone, data de cadastro) | N:1 com `enderecos` |
+| `funcionarios` | Equipe responsável (nome, setor, cargo, e-mail único, senha, telefone) | Atende `solicitacoes` e registra `andamentos` |
+| `categorias` | Tipo do problema (nome único, descrição e prazo em dias) | 1:N com `solicitacoes` |
+| `solicitacoes` | Problema reportado (título, descrição, status, prioridade, datas de abertura e conclusão) | N:1 com `usuarios`, `categorias`, `enderecos`; N:1 opcional com `funcionarios` |
+| `andamentos` | Histórico de atualizações de uma solicitação | N:1 com `solicitacoes` e `funcionarios` |
+| `anexos` | Fotos e evidências da solicitação (nome, tipo e URL) | N:1 com `solicitacoes` |
+| `avaliacoes` | Nota de 1 a 5 e comentário do cidadão após a conclusão | 1:1 com `solicitacoes` |
