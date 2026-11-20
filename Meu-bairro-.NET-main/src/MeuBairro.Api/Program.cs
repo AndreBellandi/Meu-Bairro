@@ -104,7 +104,7 @@ if (app.Configuration.GetValue("Swagger:Habilitado", true))
     {
         o.SwaggerEndpoint("/openapi/v1.json", "Meu Bairro API v1");
         o.RoutePrefix = "swagger";
-        o.DocumentTitle = "Meu Bairro API 1";
+        o.DocumentTitle = "Meu Bairro API";
     });
 }
 
