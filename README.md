@@ -2,7 +2,9 @@
 
 Projeto da Global Solution 2026/2 · DevOps Tools & Cloud Computing (FIAP).
 
-**Integrantes:** [NOME COMPLETO] · RM [RM] <!-- preencher -->
+André Bellandi Vital Rodrigues RM564662 – 2TDSPO
+Gabriel Garcia Mayo Delatore RM563298 – 2TDSPO
+Vitor Augusto Oliveira de Abreu RM564227 – 2TDSPI
 
 ## 1. Solução proposta
 
